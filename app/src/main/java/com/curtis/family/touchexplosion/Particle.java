@@ -15,10 +15,11 @@ import java.nio.ShortBuffer;
 public class Particle {
 
     private final String vertexShaderCode =
+            "uniform mat4 uMVPMatrix;" +
             "attribute vec4 vPosition;" +
-                    "void main() {" +
-                    "  gl_Position = vPosition;" +
-                    "}";
+            "void main() {" +
+            "  gl_Position = uMVPMatrix * vPosition;" +
+            "}";
 
     private final String fragmentShaderCode =
             "precision mediump float;" +
@@ -38,7 +39,7 @@ public class Particle {
             0.5f, -0.5f, 0.0f }; // top right
 
     // Set color with red, green, blue and alpha (opacity) values
-    float color[] = { 0.63671875f, 0.76953125f, 0.22265625f, 1.0f };
+    float color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     private short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
     private final int mProgram;
@@ -86,7 +87,7 @@ public class Particle {
     private final int vertexCount = squareCoords.length / COORDS_PER_VERTEX;
     private final int vertexStride = COORDS_PER_VERTEX * 4; // 4 bytes per vertex
 
-    public void draw() {
+    public void draw(float[] mvpMatrix) {
         String Tag = "Particle";
 
         // Add program to OpenGL ES environment
@@ -108,6 +109,9 @@ public class Particle {
 
         // Set color for drawing the triangle
         GLES20.glUniform4fv(mColorHandle, 1, color, 0);
+
+        int mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mvpMatrix, 0);
 
         // Draw the triangle
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertexCount);
