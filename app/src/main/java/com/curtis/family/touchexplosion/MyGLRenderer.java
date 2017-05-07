@@ -6,6 +6,8 @@ import android.opengl.Matrix;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 
+import java.util.Random;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -92,7 +94,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
             float x = 2 * (e.getX() / (float) _wWidth - 0.5f);
             float y = 2 * ((_wHeight - e.getY()) / (float) _wHeight - 0.5f);
 
-            float depth = 0.1f;
+            float rand = new Random().nextFloat();
+            float depth = 0.1f + 0.8f * rand;
             // Near, far, and width of the front plane.
             float n = 0.5f;
             float f = 7.0f;
