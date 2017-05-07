@@ -74,7 +74,7 @@ class BallisticFunction3 extends Function3 {
     private Vector3 scratch1;
     private Vector3 x0;
     private Vector3 x_dot0;
-    private static Vector3 half_gravity = new Vector3(0, -4.9e-7f, 0);
+    private static Vector3 half_gravity = new Vector3(0, -4.9e-6f, 0);
 }
 
 /**

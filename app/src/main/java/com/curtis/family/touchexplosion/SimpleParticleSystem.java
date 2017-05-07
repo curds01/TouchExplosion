@@ -17,16 +17,22 @@ public class SimpleParticleSystem extends ParticleSystem {
 
     private final String vertexShaderCode =
             "uniform mat4 uMVPMatrix;" +
+                    "uniform float uFarLimit;" +
                     "attribute vec4 vPosition;" +
+                    "varying float alpha;" +
                     "void main() {" +
                     "  gl_Position = uMVPMatrix * vPosition;" +
+                    "  float dist = 3.0f - gl_Position.z;" +
+                    " alpha = sqrt(1.0f - (gl_Position.z / uFarLimit));" +
                     "}";
 
     private final String fragmentShaderCode =
             "precision mediump float;" +
-                    "uniform vec4 vColor;" +
+                    "varying float alpha;" +
+                    "uniform vec4 uColor;" +
                     "void main() {" +
-                    "  gl_FragColor = vColor;" +
+                    "  gl_FragColor = uColor;" +
+                    "  gl_FragColor.a = alpha;" +
                     "}";
 
     private FloatBuffer vertexBuffer;
@@ -110,6 +116,9 @@ public class SimpleParticleSystem extends ParticleSystem {
 //        GLES20.glUniform4fv(mColorHandle, 1, color, 0);
 //        Quad.draw();
 
+        GLES20.glEnable( GLES20.GL_BLEND );
+        GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
+
         // Add program to OpenGL ES environment
         GLES20.glUseProgram(mProgram);
 
@@ -124,8 +133,11 @@ public class SimpleParticleSystem extends ParticleSystem {
                 GLES20.GL_FLOAT, false,
                 vertexStride, vertexBuffer);
 
+        int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
+        GLES20.glUniform1f(mFarLimitHandle, 7);
+
         // get handle to fragment shader's vColor member
-        int mColorHandle = GLES20.glGetUniformLocation(mProgram, "vColor");
+        int mColorHandle = GLES20.glGetUniformLocation(mProgram, "uColor");
 
         // Set color for drawing the triangle
         GLES20.glUniform4fv(mColorHandle, 1, color, 0);
@@ -164,18 +176,19 @@ public class SimpleParticleSystem extends ParticleSystem {
 
         // Draw the quad
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertexCount);
+        return true;
     }
 
     @Override
     public void reportTouch(float x, float y, float z, long globalT) {
         mPose.set(x, y, z);
-        float maxSpeed = 0.0025f;
+        float maxSpeed = 0.0075f;
         synchronized (mSync) {
             for (int i = 0; i < 20; ++i) {
                 float orient = random.nextFloat() * 360;
                 mVel.set((random.nextFloat() * 2 - 1) * maxSpeed,
                         (random.nextFloat() * 2 - 1) * maxSpeed,
-                        (random.nextFloat() * 2 - 1) * maxSpeed);
+                        (random.nextFloat() * 2 - 1) * maxSpeed * 0.25f);
                 mParticles.add(new SimpleParticle(mPose, mVel, orient, globalT));
             }
         }

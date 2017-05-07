@@ -127,7 +127,8 @@ public class Frustum {
      point values are set in the provided vector. */
     public void pointInFrustum(float cX, float cY, Vector3 p) {
         float rand = random.nextFloat();
-        float depth = 0.5f;// 0.1f + 0.8f * rand;
+        // This places the depth in the range of 20-80% into the frustum.
+        float depth = 0.2f + 0.6f * rand;
 
         float dist = mNear + ((depth - 1.0f) * mNear + depth * mFar);
         float s = dist / mNear;
