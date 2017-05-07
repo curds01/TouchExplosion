@@ -3,6 +3,7 @@ package com.curtis.family.touchexplosion;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.os.SystemClock;
 import android.view.MotionEvent;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -26,12 +27,16 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private float mY;
     private float mZ;
     private float mMat[];
+
+    private long _lastTick;
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         mParticle = new Particle();
         mMat = new float[16];
         mX = mY = mZ = 0.0f;
+        _lastTick = SystemClock.uptimeMillis();
     }
 
     public void onSurfaceChanged(GL10 unused, int width, int height) {
@@ -55,8 +60,13 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
+        long now = SystemClock.uptimeMillis();
+        // Elapsed is a monotonically increasing time.
+        float elapsed = now - _lastTick;
+        float theta = 0.1f * elapsed;
         Matrix.setIdentityM( mMat, 0 );
         Matrix.translateM( mMat, 0, mX, mY, mZ );
+        Matrix.rotateM(mMat, 0, theta, 0, 0, 1);
         Matrix.multiplyMM( mMat, 0, mMVPMatrix, 0, mMat, 0 );
 
         mParticle.draw(mMat);
