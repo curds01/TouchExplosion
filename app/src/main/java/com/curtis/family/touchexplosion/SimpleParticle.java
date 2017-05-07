@@ -1,5 +1,6 @@
 package com.curtis.family.touchexplosion;
 
+import java.util.Random;
 import android.os.SystemClock;
 
 abstract class Function {
@@ -81,12 +82,20 @@ class BallisticFunction3 extends Function3 {
  * A simple particle.
  */
 public class SimpleParticle {
+
+    private static Random sRandom = new Random();
     private Function1 mOrientFunc;
     private Function3 mPosFunc;
+    float mColor[];
 
     public SimpleParticle(Vector3 pos, Vector3 vel, float orient, long globalT) {
         mOrientFunc = new LinearFunction1(orient, 0.1f, globalT);
         mPosFunc = new BallisticFunction3(pos, vel, globalT);
+        mColor = new float[4];
+        mColor[0] = sRandom.nextFloat();
+        mColor[1] = sRandom.nextFloat();
+        mColor[2] = sRandom.nextFloat();
+        mColor[3] = 1.0f;
 //        mPosFunc = new ConstFunction3(pos);
     }
 
@@ -99,6 +108,8 @@ public class SimpleParticle {
     public float getOrient(long globalT) {
         return mOrientFunc.eval(globalT);
     }
+
+    public float[] getColor() { return mColor; }
 
     /** This never dies. */
     public boolean isAlive(long globalT) {

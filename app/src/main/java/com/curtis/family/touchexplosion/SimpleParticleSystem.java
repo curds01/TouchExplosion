@@ -47,9 +47,6 @@ public class SimpleParticleSystem extends ParticleSystem {
 
     private IntBuffer mData;
 
-    // Set color with red, green, blue and alpha (opacity) values
-    float color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-
     private short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
     private int mProgram;
     private int mTexId;
@@ -157,12 +154,6 @@ public class SimpleParticleSystem extends ParticleSystem {
         int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
         GLES20.glUniform1f(mFarLimitHandle, 7);
 
-        // get handle to fragment shader's vColor member
-        int mColorHandle = GLES20.glGetUniformLocation(mProgram, "uColor");
-
-        // Set color for drawing the triangle
-        GLES20.glUniform4fv(mColorHandle, 1, color, 0);
-
         synchronized (mSync) {
             int count = mParticles.size();
             for (int i = 0; i < count; ++i) {
@@ -191,6 +182,10 @@ public class SimpleParticleSystem extends ParticleSystem {
 
         int mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMat, 0);
+
+        // get handle to fragment shader's vColor member
+        int mColorHandle = GLES20.glGetUniformLocation(mProgram, "uColor");
+        GLES20.glUniform4fv(mColorHandle, 1, particle.getColor(), 0);
 
         // Draw the quad
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
