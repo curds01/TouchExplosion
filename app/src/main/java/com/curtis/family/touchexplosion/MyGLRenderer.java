@@ -15,7 +15,7 @@ import javax.microedition.khronos.opengles.GL10;
  * The OpenGL renderer.
  */
 public class MyGLRenderer implements GLSurfaceView.Renderer {
-    private Particle mParticle;
+    private ParticleSystem mParticleSystem;
     // mMVPMatrix is an abbreviation for "Model View Projection Matrix"
     private final float[] mMVPMatrix = new float[16];
     private final float[] mProjectionMatrix = new float[16];
@@ -25,20 +25,15 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private int _wWidth;
     private int _wHeight;
 
-    private float mX;
-    private float mY;
-    private float mZ;
-    private float mMat[];
+    private Random random;
 
-    private long _lastTick;
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        mParticle = new Particle();
-        mMat = new float[16];
-        mX = mY = mZ = 0.0f;
-        _lastTick = SystemClock.uptimeMillis();
+        GLES20.glClearColor(0.3f, 0.1f, 0.1f, 1.0f);
+        mParticleSystem = new SimpleParticleSystem();
+        mParticleSystem.initGL();
+        random = new Random();
     }
 
     public void onSurfaceChanged(GL10 unused, int width, int height) {
@@ -62,16 +57,9 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
-        long now = SystemClock.uptimeMillis();
-        // Elapsed is a monotonically increasing time.
-        float elapsed = now - _lastTick;
-        float theta = 0.1f * elapsed;
-        Matrix.setIdentityM( mMat, 0 );
-        Matrix.translateM( mMat, 0, mX, mY, mZ );
-        Matrix.rotateM(mMat, 0, theta, 0, 0, 1);
-        Matrix.multiplyMM( mMat, 0, mMVPMatrix, 0, mMat, 0 );
-
-        mParticle.draw(mMat);
+        long now = getGlobalT();
+        mParticleSystem.drawGL(now, mMVPMatrix);
+    }
 
     public static int loadShader(int type, String shaderCode){
 
@@ -86,6 +74,11 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         return shader;
     }
 
+    protected long getGlobalT() {
+        // TODO: This needs to take into account when the system is paused and restarted.
+        return SystemClock.uptimeMillis();
+    }
+
     synchronized public boolean handleTouchEvent(MotionEvent e) {
         String TAG = "MyGLRenderer";
         if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -94,19 +87,20 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
             float x = 2 * (e.getX() / (float) _wWidth - 0.5f);
             float y = 2 * ((_wHeight - e.getY()) / (float) _wHeight - 0.5f);
 
-            float rand = new Random().nextFloat();
+            float rand = random.nextFloat();
             float depth = 0.1f + 0.8f * rand;
             // Near, far, and width of the front plane.
             float n = 0.5f;
             float f = 7.0f;
             float e_z = 3.0f;
             float dist = n + ((depth - 1.0f) * n + depth * f);
-            mZ = e_z - dist;
             float s = dist / n;
             float h = s;
             float w = s * _wWidth / _wHeight;
-            mX = x * w;
-            mY = y * h;
+            x *= w;
+            y *= h;
+            float z = e_z - dist;
+            mParticleSystem.reportTouch(x, y, z, getGlobalT());
 
             return true;
         }
