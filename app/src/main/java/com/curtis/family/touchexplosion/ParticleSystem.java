@@ -15,6 +15,16 @@ package com.curtis.family.touchexplosion;
 //      - a single light sits on the screen, emitting sparks that accelerate ballistically fall.
 //      - A tap on the screen causes the light to move to the tap location
 //          - However, there are acceleration constraints on it, it must move with C1 continuity.
+//  4. fireflies
+//      - The view frustum is filled with meandering fireflies. They generally fill the volume
+//      uniformly
+//      - during contact, the flies swarm to the touching point.
+//      - This uses an opensteer flock-style behavior
+//  5. Bubbles that work their way around obstacles
+//  6. Feeding pool
+//      - contact sprinkles food on the surface of water
+//      - fish come up to eat the food.
+//      - food not eaten eventually moves under the surface and then fades away.
 
 import android.content.Context;
 
@@ -38,6 +48,8 @@ public abstract class ParticleSystem {
     public abstract void reportTouch(float x, float y, float z, long globalT);
 
     public void setFrustum(Frustum f) { mFrustum = f; }
+
+    public abstract float[] getBgColor();
 
     // TODO:
     //  1. I need to know if they exit the view frustum such that they cannot return.

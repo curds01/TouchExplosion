@@ -37,12 +37,13 @@ public class SimpleParticleSystem extends ParticleSystem {
             "precision mediump float;" +
                     "varying vec2 vTextureCoord;" +
                     "uniform sampler2D sTexture;" +
+                    "uniform vec3 uBgColor;" +
                     "varying float alpha;" +
                     "uniform vec4 uColor;" +
                     "void main() {" +
                     "  gl_FragColor = texture2D(sTexture, vTextureCoord);" +
                     "  gl_FragColor *= uColor;" +
-                    "  gl_FragColor.a = min(alpha, gl_FragColor.a);" +
+                    "  gl_FragColor.xyz = (1.0f - alpha) * uBgColor + alpha * gl_FragColor.xyz;" +
                     "}";
 
     private IntBuffer mData;
@@ -50,6 +51,7 @@ public class SimpleParticleSystem extends ParticleSystem {
     private short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
     private int mProgram;
     private int mTexId;
+    float sBgColor[] = {0.05f, 0.05f, 0.05f};
 
     public SimpleParticleSystem() {
         super();
@@ -93,7 +95,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         GLES20.glLinkProgram(mProgram);
 
         // Initialize texture
-        InputStream is = context.getResources().openRawResource( R.raw.target );
+        InputStream is = context.getResources().openRawResource( R.raw.flower );
         Bitmap bitmap;
         try {
             bitmap = BitmapFactory.decodeStream(is);
@@ -154,6 +156,9 @@ public class SimpleParticleSystem extends ParticleSystem {
         int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
         GLES20.glUniform1f(mFarLimitHandle, 7);
 
+        int bgColorHandle = GLES20.glGetUniformLocation(mProgram, "uBgColor");
+        GLES20.glUniform3f(bgColorHandle, sBgColor[0], sBgColor[1], sBgColor[2]);
+
         synchronized (mSync) {
             int count = mParticles.size();
             for (int i = 0; i < count; ++i) {
@@ -206,6 +211,9 @@ public class SimpleParticleSystem extends ParticleSystem {
             }
         }
     }
+
+    @Override
+    public float[] getBgColor() { return sBgColor; }
 
     private ArrayList<SimpleParticle> mParticles;
     private Vector3 mPose;

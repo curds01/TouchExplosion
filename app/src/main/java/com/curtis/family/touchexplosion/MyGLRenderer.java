@@ -37,11 +37,11 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        GLES20.glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-        mFrustum = new Frustum(new Vector3(0, 0, 3), new Vector3(0, 0, -1),
-                -1, 1, 0.5f, 7.0f, -1, 1);
         mParticleSystem = new SimpleParticleSystem();
         mParticleSystem.initGL(mContext);
+        float bgColor[] = mParticleSystem.getBgColor();
+
+        GLES20.glClearColor(bgColor[0], bgColor[1], bgColor[2], 1.0f);
         random = new Random();
     }
 
