@@ -19,8 +19,10 @@ package com.curtis.family.touchexplosion;
  * Represents a particle system.
  */
 public abstract class ParticleSystem {
+    Frustum mFrustum;
+
     /** Constructor */
-    public ParticleSystem() {}
+    public ParticleSystem() { mFrustum = null; }
 
     /** Initializes the OpenGL resources for this system. */
     public abstract void initGL();
@@ -31,6 +33,8 @@ public abstract class ParticleSystem {
     /** Reports that there has been a touch and that the touch has the given coordinates in the
      world frame. */
     public abstract void reportTouch(float x, float y, float z, long globalT);
+
+    public void setFrustum(Frustum f) { mFrustum = f; }
 
     // TODO:
     //  1. I need to know if they exit the view frustum such that they cannot return.

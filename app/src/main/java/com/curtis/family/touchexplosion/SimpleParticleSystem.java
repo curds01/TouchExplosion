@@ -50,7 +50,7 @@ public class SimpleParticleSystem extends ParticleSystem {
 
     public SimpleParticleSystem() {
         super();
-        mParticles = new ArrayList<SimpleParticle>();
+        mParticles = new ArrayList<>();
         mPose = new Vector3();
         mVel = new Vector3();
         scratch = new Vector3();
@@ -131,8 +131,15 @@ public class SimpleParticleSystem extends ParticleSystem {
         GLES20.glUniform4fv(mColorHandle, 1, color, 0);
 
         synchronized (mSync) {
-            for (SimpleParticle particle : mParticles) {
-                drawParticle(particle, globalT, mMVPMatrix);
+            int count = mParticles.size();
+            for (int i = 0; i < count; ++i) {
+                SimpleParticle particle = mParticles.get(i);
+                if (!drawParticle(particle, globalT, mMVPMatrix) ) {
+                    SimpleParticle end = mParticles.remove(count - 1);
+                    --count;
+                    if ( count > 0 && i != count ) mParticles.set(i, end);
+                    --i;
+                }
             }
         }
 
@@ -140,10 +147,12 @@ public class SimpleParticleSystem extends ParticleSystem {
         GLES20.glDisableVertexAttribArray(mPositionHandle);
     }
 
-    protected void drawParticle(SimpleParticle particle, long globalT, float[] mvpMatrix) {
+    /** Draws the particle given -- indicates true if it is still alive, false if not. */
+    protected boolean drawParticle(SimpleParticle particle, long globalT, float[] mvpMatrix) {
         // Elapsed is a monotonically increasing time.
         float theta = particle.getOrient(globalT);
         particle.getPosition(globalT, scratch);
+        if (mFrustum.farthestOut(scratch, 0.0f) > 0.0f) return false;
 
         Matrix.setIdentityM( mMat, 0 );
         Matrix.translateM( mMat, 0, scratch.x, scratch.y, scratch.z );
@@ -162,7 +171,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         mPose.set(x, y, z);
         float maxSpeed = 0.0025f;
         synchronized (mSync) {
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < 20; ++i) {
                 float orient = random.nextFloat() * 360;
                 mVel.set((random.nextFloat() * 2 - 1) * maxSpeed,
                         (random.nextFloat() * 2 - 1) * maxSpeed,
