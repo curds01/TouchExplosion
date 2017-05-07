@@ -15,6 +15,9 @@ package com.curtis.family.touchexplosion;
 //      - a single light sits on the screen, emitting sparks that accelerate ballistically fall.
 //      - A tap on the screen causes the light to move to the tap location
 //          - However, there are acceleration constraints on it, it must move with C1 continuity.
+
+import android.content.Context;
+
 /**
  * Represents a particle system.
  */
@@ -25,7 +28,7 @@ public abstract class ParticleSystem {
     public ParticleSystem() { mFrustum = null; }
 
     /** Initializes the OpenGL resources for this system. */
-    public abstract void initGL();
+    public abstract void initGL(Context context);
 
     /** Draws the particles to the open gl context at the given time stamp. */
     public abstract void drawGL(long globalT, float[] mMVPMatrix);

@@ -1,12 +1,16 @@
 package com.curtis.family.touchexplosion;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
+import android.opengl.GLUtils;
 import android.opengl.Matrix;
+import android.util.Log;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -18,41 +22,37 @@ public class SimpleParticleSystem extends ParticleSystem {
     private final String vertexShaderCode =
             "uniform mat4 uMVPMatrix;" +
                     "uniform float uFarLimit;" +
-                    "attribute vec4 vPosition;" +
+                    "attribute vec4 aPosition;" +
+                    "attribute vec2 aTextureCoord;" +
+                    "varying vec2 vTextureCoord;" +
                     "varying float alpha;" +
                     "void main() {" +
-                    "  gl_Position = uMVPMatrix * vPosition;" +
+                    "  gl_Position = uMVPMatrix * aPosition;" +
                     "  float dist = 3.0f - gl_Position.z;" +
-                    " alpha = sqrt(1.0f - (gl_Position.z / uFarLimit));" +
+                    "  alpha = sqrt(1.0f - (gl_Position.z / uFarLimit));" +
+                    "  vTextureCoord = aTextureCoord;" +
                     "}";
 
     private final String fragmentShaderCode =
             "precision mediump float;" +
+                    "varying vec2 vTextureCoord;" +
+                    "uniform sampler2D sTexture;" +
                     "varying float alpha;" +
                     "uniform vec4 uColor;" +
                     "void main() {" +
-                    "  gl_FragColor = uColor;" +
-                    "  gl_FragColor.a = alpha;" +
+                    "  gl_FragColor = texture2D(sTexture, vTextureCoord);" +
+                    "  gl_FragColor *= uColor;" +
+                    "  gl_FragColor.a = min(alpha, gl_FragColor.a);" +
                     "}";
 
-    private FloatBuffer vertexBuffer;
-    private ShortBuffer drawListBuffer;
-
-    static final int COORDS_PER_VERTEX = 3;
-    static float squareCoords[] = {
-            -0.5f,  0.5f, 0.0f,   // top left
-            -0.5f, -0.5f, 0.0f,   // bottom left
-            0.5f, 0.5f, 0.0f,   // bottom right
-            0.5f, -0.5f, 0.0f }; // top right
-
-    private final int vertexCount = squareCoords.length / COORDS_PER_VERTEX;
-    private final int vertexStride = COORDS_PER_VERTEX * 4; // 4 bytes per vertex
+    private IntBuffer mData;
 
     // Set color with red, green, blue and alpha (opacity) values
     float color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     private short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
     private int mProgram;
+    private int mTexId;
 
     public SimpleParticleSystem() {
         super();
@@ -66,31 +66,17 @@ public class SimpleParticleSystem extends ParticleSystem {
     }
 
     @Override
-    public void initGL() {
-//        try {
-//            mGlProgram = GLProgram.createProgram(vertexShaderCode, fragmentShaderCode);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        mPositionHandle = mGlProgram.addAttributeHandle("vPosition");
-//        mColorHandle = mGlProgram.addUniformHandle("vColor");
-        // initialize vertex byte buffer for shape coordinates
-        ByteBuffer bb = ByteBuffer.allocateDirect(
-                // (# of coordinate values * 4 bytes per float)
-                squareCoords.length * 4);
-        bb.order(ByteOrder.nativeOrder());
-        vertexBuffer = bb.asFloatBuffer();
-        vertexBuffer.put(squareCoords);
-        vertexBuffer.position(0);
-
-        // initialize byte buffer for the draw list
-        ByteBuffer dlb = ByteBuffer.allocateDirect(
-                // (# of coordinate values * 2 bytes per short)
-                drawOrder.length * 2);
-        dlb.order(ByteOrder.nativeOrder());
-        drawListBuffer = dlb.asShortBuffer();
-        drawListBuffer.put(drawOrder);
-        drawListBuffer.position(0);
+    public void initGL(Context context) {
+        int one = 0x10000;
+        // DATA: v.x, v.y, v.z, u, v
+        // FIXED DATA
+        int interleaved[] = {
+                -one, -one, 0,0, one,
+                one, -one, 0, one, one,
+                -one, one, 0, 0, 0,
+                one, one, 0, one, 0
+        };
+        mData = Utils.buildBuffer(interleaved);
 
         int vertexShader = MyGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER,
                 vertexShaderCode);
@@ -108,6 +94,38 @@ public class SimpleParticleSystem extends ParticleSystem {
 
         // creates OpenGL ES program executables
         GLES20.glLinkProgram(mProgram);
+
+        // Initialize texture
+        InputStream is = context.getResources().openRawResource( R.raw.target );
+        Bitmap bitmap;
+        try {
+            bitmap = BitmapFactory.decodeStream(is);
+        } finally {
+            try {
+                is.close();
+            } catch(IOException e) {
+                Log.e("GLTextures", e.getMessage());
+                // Ignore.
+            }
+        }
+        String TAG = "SimpleParticleSystem";
+        Log.i(TAG, "Bitmap loaded!");
+
+        int[] tmp_tex = new int[ 1 ];
+        GLES20.glGenTextures( 1, tmp_tex, 0 );
+        Utils.checkGlError( TAG, "glGenTextures" );
+        mTexId = tmp_tex[0];
+        Log.i(TAG, "Binding to " + mTexId );
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexId);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+        //TODO: control whether I want to wrap or clamp the image
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT);
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+        Utils.checkGlError( TAG, "ERROR CHECK - 2" );
+        bitmap.recycle();
+        Log.i(TAG, "Bound to texture " + mTexId);
     }
 
     @Override
@@ -122,16 +140,19 @@ public class SimpleParticleSystem extends ParticleSystem {
         // Add program to OpenGL ES environment
         GLES20.glUseProgram(mProgram);
 
-        // get handle to vertex shader's vPosition member
-        int mPositionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
+        GLES20.glActiveTexture( GLES20.GL_TEXTURE0 );
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexId);
 
-        // Enable a handle to the triangle vertices
-        GLES20.glEnableVertexAttribArray(mPositionHandle);
+        int stride = 20; // 4 bytes-per int * 5 ints.
+        mData.position(0);
+        int handle =  GLES20.glGetAttribLocation( mProgram, "aPosition" );
+        GLES20.glVertexAttribPointer(handle, 3, GLES20.GL_FIXED, false, stride, mData);
+        GLES20.glEnableVertexAttribArray( handle );
 
-        // Prepare the triangle coordinate data
-        GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
-                GLES20.GL_FLOAT, false,
-                vertexStride, vertexBuffer);
+        mData.position(3); handle =  GLES20.glGetAttribLocation( mProgram, "aTextureCoord" );
+        GLES20.glVertexAttribPointer(handle, 2, GLES20.GL_FIXED, false, stride, mData);
+        GLES20.glEnableVertexAttribArray( handle );
+        GLES20.glEnableVertexAttribArray( handle );
 
         int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
         GLES20.glUniform1f(mFarLimitHandle, 7);
@@ -154,9 +175,6 @@ public class SimpleParticleSystem extends ParticleSystem {
                 }
             }
         }
-
-        // Disable vertex array
-        GLES20.glDisableVertexAttribArray(mPositionHandle);
     }
 
     /** Draws the particle given -- indicates true if it is still alive, false if not. */
@@ -175,7 +193,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMat, 0);
 
         // Draw the quad
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertexCount);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         return true;
     }
 

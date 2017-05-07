@@ -13,17 +13,17 @@ public class MyGLSurfaceView extends GLSurfaceView {
 
     public MyGLSurfaceView(Context context) {
         super(context);
-        init();
+        init(context);
     }
 
     public MyGLSurfaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        init(context);
     }
 
-    private void init() {
+    private void init(Context context) {
         setEGLContextClientVersion(2);
-        mRenderer = new MyGLRenderer();
+        mRenderer = new MyGLRenderer(context);
         setRenderer(mRenderer);
 //        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
     }

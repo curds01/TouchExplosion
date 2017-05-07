@@ -1,5 +1,6 @@
 package com.curtis.family.touchexplosion;
 
+import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
@@ -29,14 +30,18 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     Frustum mFrustum;
 
+    Context mContext;
+    MyGLRenderer(Context ctx) {
+        mContext = ctx;
+    }
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        GLES20.glClearColor(0.3f, 0.1f, 0.1f, 1.0f);
+        GLES20.glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         mFrustum = new Frustum(new Vector3(0, 0, 3), new Vector3(0, 0, -1),
                 -1, 1, 0.5f, 7.0f, -1, 1);
         mParticleSystem = new SimpleParticleSystem();
-        mParticleSystem.initGL();
+        mParticleSystem.initGL(mContext);
         random = new Random();
     }
 
