@@ -178,7 +178,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         // Elapsed is a monotonically increasing time.
         float theta = particle.getOrient(globalT);
         particle.getPosition(globalT, scratch);
-        if (mFrustum.farthestOut(scratch, 0.0f) > 0.0f) return false;
+        if (mFrustum.farthestOut(scratch, 1.0f) > 1.0f) return false;
 
         Matrix.setIdentityM( mMat, 0 );
         Matrix.translateM( mMat, 0, scratch.x, scratch.y, scratch.z );

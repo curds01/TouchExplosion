@@ -1,7 +1,8 @@
 package com.curtis.family.touchexplosion;
 
+import android.graphics.Color;
+
 import java.util.Random;
-import android.os.SystemClock;
 
 abstract class Function {
     private long t0;
@@ -89,12 +90,16 @@ public class SimpleParticle {
     float mColor[];
 
     public SimpleParticle(Vector3 pos, Vector3 vel, float orient, long globalT) {
-        mOrientFunc = new LinearFunction1(orient, 0.1f, globalT);
+        float angVel = sRandom.nextFloat() * 0.4f - 0.2f;
+        mOrientFunc = new LinearFunction1(orient, angVel, globalT);
         mPosFunc = new BallisticFunction3(pos, vel, globalT);
         mColor = new float[4];
-        mColor[0] = sRandom.nextFloat();
-        mColor[1] = sRandom.nextFloat();
-        mColor[2] = sRandom.nextFloat();
+        float h = sRandom.nextFloat() * 360;
+        float hsl[] = {h, 1.0f, 1.0f};
+        int argb = Color.HSVToColor(hsl);
+        mColor[0] = (float)((argb >> 16) & 0xff) / 255.0f;
+        mColor[1] = (float)((argb >> 8) & 0xff) / 255.0f;
+        mColor[2] = (float)(argb & 0xff) / 255.0f;
         mColor[3] = 1.0f;
 //        mPosFunc = new ConstFunction3(pos);
     }
