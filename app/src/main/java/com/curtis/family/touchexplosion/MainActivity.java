@@ -120,6 +120,19 @@ public class MainActivity extends AppCompatActivity {
         delayedHide(100);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        delayedHide(100);
+        // TODO: Give the renderer (and corresponding particle system) a chance to wake up.
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // TODO: Give the renderer a chance to pause.
+    }
+
     private void toggle() {
         if (mVisible) {
             hide();
