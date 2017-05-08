@@ -98,7 +98,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     synchronized public boolean handleTouchEvent(MotionEvent e) {
         String TAG = "MyGLRenderer";
-        if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        int code = e.getActionMasked();
+        if (code == MotionEvent.ACTION_DOWN || code == MotionEvent.ACTION_MOVE) {
             // First compute an (x, y) value in canonical space [-1, -1] X [1, 1]
             float x = 2 * (e.getX() / (float) _wWidth - 0.5f);
             float y = 2 * ((_wHeight - e.getY()) / (float) _wHeight - 0.5f);

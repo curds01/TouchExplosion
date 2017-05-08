@@ -53,6 +53,15 @@ public class SimpleParticleSystem extends ParticleSystem {
     private int mTexId;
     float sBgColor[] = {0.05f, 0.05f, 0.05f};
 
+    /** The time stamp of the last time particles were spawned. In milliseconds.*/
+    long mLastSpawn;
+    /** The minimum duration which must elapse between spawns (in milliseconds). */
+    long mSpawnPeriod;
+    /** The number of particles to spawn at a time. */
+    int mSpawnCount;
+    /** The scale factor on the sprites. */
+    float mScale;
+
     public SimpleParticleSystem() {
         super();
         mParticles = new ArrayList<>();
@@ -62,6 +71,10 @@ public class SimpleParticleSystem extends ParticleSystem {
         mMat = new float[16];
         random = new Random();
         mSync = new Object();
+        mLastSpawn = -1;
+        mSpawnPeriod = 100;  // 1 full second between spawns.
+        mSpawnCount = 10;
+        mScale = 0.75f;
     }
 
     @Override
@@ -183,6 +196,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         Matrix.setIdentityM( mMat, 0 );
         Matrix.translateM( mMat, 0, scratch.x, scratch.y, scratch.z );
         Matrix.rotateM(mMat, 0, theta, 0, 0, 1);
+        Matrix.scaleM(mMat, 0, mScale, mScale, mScale);
         Matrix.multiplyMM( mMat, 0, mvpMatrix, 0, mMat, 0 );
 
         int mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
@@ -199,16 +213,19 @@ public class SimpleParticleSystem extends ParticleSystem {
 
     @Override
     public void reportTouch(float x, float y, float z, long globalT) {
-        mPose.set(x, y, z);
-        float maxSpeed = 0.0075f;
-        synchronized (mSync) {
-            for (int i = 0; i < 20; ++i) {
-                float orient = random.nextFloat() * 360;
-                mVel.set((random.nextFloat() * 2 - 1) * maxSpeed,
-                        (random.nextFloat() * 2 - 1) * maxSpeed,
-                        (random.nextFloat() * 2 - 1) * maxSpeed * 0.25f);
-                mParticles.add(new SimpleParticle(mPose, mVel, orient, globalT));
+        if (mLastSpawn < 0 || mLastSpawn + mSpawnPeriod < globalT ) {
+            mPose.set(x, y, z);
+            float maxSpeed = 0.0075f;
+            synchronized (mSync) {
+                for (int i = 0; i < mSpawnCount; ++i) {
+                    float orient = random.nextFloat() * 360;
+                    mVel.set((random.nextFloat() * 2 - 1) * maxSpeed,
+                            (random.nextFloat() * 2 - 1) * maxSpeed,
+                            (random.nextFloat() * 2 - 1) * maxSpeed * 0.25f);
+                    mParticles.add(new SimpleParticle(mPose, mVel, orient, globalT));
+                }
             }
+            mLastSpawn = globalT;
         }
     }
 
