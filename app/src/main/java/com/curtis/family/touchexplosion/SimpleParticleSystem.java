@@ -36,12 +36,15 @@ public class SimpleParticleSystem extends ParticleSystem {
     private final String fragmentShaderCode =
             "precision mediump float;" +
                     "varying vec2 vTextureCoord;" +
-                    "uniform sampler2D sTexture;" +
+                    "uniform sampler2D iconTexture;" +
+                    "uniform sampler2D colorTexture;" +
                     "varying float alpha;" +
                     "uniform vec4 uColor;" +
+                    "uniform vec4 uCenterColor;" +
                     "void main() {" +
-                    "  gl_FragColor = texture2D(sTexture, vTextureCoord);" +
-                    "  gl_FragColor *= uColor;" +
+                    "  gl_FragColor = texture2D(iconTexture, vTextureCoord);" +
+                    "  float color_mask = texture2D(colorTexture, vTextureCoord).x;" +
+                    "  gl_FragColor.xyz *= color_mask < 0.75f ? uCenterColor.xyz : uColor.xyz;" +
                     "  gl_FragColor.a = min(alpha, gl_FragColor.a);" +
                     "}";
 
@@ -49,7 +52,8 @@ public class SimpleParticleSystem extends ParticleSystem {
 
     private short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
     private int mProgram;
-    private int mTexId;
+    private int mFlowerTex;
+    private int mColorTex;
     float sBgColor[] = {0.05f, 0.05f, 0.05f};
 
     /** The time stamp of the last time particles were spawned. In milliseconds.*/
@@ -71,7 +75,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         random = new Random();
         mSync = new Object();
         mLastSpawn = -1;
-        mSpawnPeriod = 100;  // 1 full second between spawns.
+        mSpawnPeriod = 100;  // 10 spawns / second (100 ms between spawns).
         mSpawnCount = 10;
         mScale = 0.75f;
     }
@@ -106,8 +110,15 @@ public class SimpleParticleSystem extends ParticleSystem {
         // creates OpenGL ES program executables
         GLES20.glLinkProgram(mProgram);
 
+        mFlowerTex = loadTexture(context, R.raw.flower);
+        mColorTex = loadTexture(context, R.raw.flower_mask);
+        
+    }
+
+    /** Loads a resource image as an OpenGL texture. */
+    private int loadTexture(Context context, int resource) {
         // Initialize texture
-        InputStream is = context.getResources().openRawResource( R.raw.flower );
+        InputStream is = context.getResources().openRawResource( resource );
         Bitmap bitmap;
         try {
             bitmap = BitmapFactory.decodeStream(is);
@@ -120,14 +131,12 @@ public class SimpleParticleSystem extends ParticleSystem {
             }
         }
         String TAG = "SimpleParticleSystem";
-        Log.i(TAG, "Bitmap loaded!");
 
         int[] tmp_tex = new int[ 1 ];
         GLES20.glGenTextures( 1, tmp_tex, 0 );
         Utils.checkGlError( TAG, "glGenTextures" );
-        mTexId = tmp_tex[0];
-        Log.i(TAG, "Binding to " + mTexId );
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexId);
+        int texId = tmp_tex[0];
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texId);
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
         //TODO: control whether I want to wrap or clamp the image
@@ -136,7 +145,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
         Utils.checkGlError( TAG, "ERROR CHECK - 2" );
         bitmap.recycle();
-        Log.i(TAG, "Bound to texture " + mTexId);
+        return texId;
     }
 
     @Override
@@ -151,8 +160,16 @@ public class SimpleParticleSystem extends ParticleSystem {
         // Add program to OpenGL ES environment
         GLES20.glUseProgram(mProgram);
 
+        int texLoc = GLES20.glGetUniformLocation(mProgram, "iconTexture");
+        GLES20.glUniform1i(texLoc, 0);
+        texLoc = GLES20.glGetUniformLocation(mProgram, "colorTexture");
+        GLES20.glUniform1i(texLoc, 1);
+
         GLES20.glActiveTexture( GLES20.GL_TEXTURE0 );
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexId);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mFlowerTex);
+
+        GLES20.glActiveTexture( GLES20.GL_TEXTURE1 );
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mColorTex);
 
         int stride = 20; // 4 bytes-per int * 5 ints.
         mData.position(0);
@@ -201,6 +218,8 @@ public class SimpleParticleSystem extends ParticleSystem {
         // get handle to fragment shader's vColor member
         int mColorHandle = GLES20.glGetUniformLocation(mProgram, "uColor");
         GLES20.glUniform4fv(mColorHandle, 1, particle.getColor(), 0);
+        int mCenterHandle = GLES20.glGetUniformLocation(mProgram, "uCenterColor");
+        GLES20.glUniform4fv(mCenterHandle, 1, particle.getColor2(), 0);
 
         // Draw the quad
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);

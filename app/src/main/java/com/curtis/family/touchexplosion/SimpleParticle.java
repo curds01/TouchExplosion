@@ -88,11 +88,13 @@ public class SimpleParticle {
     private Function1 mOrientFunc;
     private Function3 mPosFunc;
     float mColor[];
+    float mColor2[];
 
     public SimpleParticle(Vector3 pos, Vector3 vel, float orient, long globalT) {
         float angVel = sRandom.nextFloat() * 0.4f - 0.2f;
         mOrientFunc = new LinearFunction1(orient, angVel, globalT);
         mPosFunc = new BallisticFunction3(pos, vel, globalT);
+
         mColor = new float[4];
         float h = sRandom.nextFloat() * 360;
         float hsl[] = {h, 1.0f, 1.0f};
@@ -101,6 +103,17 @@ public class SimpleParticle {
         mColor[1] = (float)((argb >> 8) & 0xff) / 255.0f;
         mColor[2] = (float)(argb & 0xff) / 255.0f;
         mColor[3] = 1.0f;
+
+        h += 180;
+        while (h > 360) { h -= 360; }
+        hsl[0] = h;
+        argb = Color.HSVToColor(hsl);
+        mColor2 = new float[4];
+        mColor2[0] = (float)((argb >> 16) & 0xff) / 255.0f;
+        mColor2[1] = (float)((argb >> 8) & 0xff) / 255.0f;
+        mColor2[2] = (float)(argb & 0xff) / 255.0f;
+        mColor2[3] = 1.0f;
+
 //        mPosFunc = new ConstFunction3(pos);
     }
 
@@ -115,6 +128,8 @@ public class SimpleParticle {
     }
 
     public float[] getColor() { return mColor; }
+
+    public float[] getColor2() { return mColor2; }
 
     /** This never dies. */
     public boolean isAlive(long globalT) {
