@@ -28,8 +28,8 @@ public class SimpleParticleSystem extends ParticleSystem {
                     "varying float alpha;" +
                     "void main() {" +
                     "  gl_Position = uMVPMatrix * aPosition;" +
-                    "  float dist = 3.0f - gl_Position.z;" +
-                    "  alpha = sqrt(1.0f - (gl_Position.z / uFarLimit));" +
+                    "  float dist = 0.125f + 1.0f - (gl_Position.z / uFarLimit) * 0.825f;" +
+                    "  alpha = sqrt(dist);" +
                     "  vTextureCoord = aTextureCoord;" +
                     "}";
 
@@ -37,13 +37,12 @@ public class SimpleParticleSystem extends ParticleSystem {
             "precision mediump float;" +
                     "varying vec2 vTextureCoord;" +
                     "uniform sampler2D sTexture;" +
-                    "uniform vec3 uBgColor;" +
                     "varying float alpha;" +
                     "uniform vec4 uColor;" +
                     "void main() {" +
                     "  gl_FragColor = texture2D(sTexture, vTextureCoord);" +
                     "  gl_FragColor *= uColor;" +
-                    "  gl_FragColor.xyz = (1.0f - alpha) * uBgColor + alpha * gl_FragColor.xyz;" +
+                    "  gl_FragColor.a = min(alpha, gl_FragColor.a);" +
                     "}";
 
     private IntBuffer mData;
@@ -168,9 +167,6 @@ public class SimpleParticleSystem extends ParticleSystem {
 
         int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
         GLES20.glUniform1f(mFarLimitHandle, 7);
-
-        int bgColorHandle = GLES20.glGetUniformLocation(mProgram, "uBgColor");
-        GLES20.glUniform3f(bgColorHandle, sBgColor[0], sBgColor[1], sBgColor[2]);
 
         synchronized (mSync) {
             int count = mParticles.size();

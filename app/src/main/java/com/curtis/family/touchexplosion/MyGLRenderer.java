@@ -41,7 +41,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         mParticleSystem.initGL(mContext);
         float bgColor[] = mParticleSystem.getBgColor();
 
-        GLES20.glClearColor(bgColor[0], bgColor[1], bgColor[2], 1.0f);
+        GLES20.glClearColor(bgColor[0], bgColor[1], bgColor[2], 0.0f);
         random = new Random();
     }
 

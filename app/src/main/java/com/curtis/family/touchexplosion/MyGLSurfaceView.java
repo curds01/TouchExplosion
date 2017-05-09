@@ -1,6 +1,7 @@
 package com.curtis.family.touchexplosion;
 
 import android.content.Context;
+import android.graphics.PixelFormat;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -22,9 +23,12 @@ public class MyGLSurfaceView extends GLSurfaceView {
     }
 
     private void init(Context context) {
+        setEGLConfigChooser(8, 8, 8, 8, 16, 0);
         setEGLContextClientVersion(2);
         mRenderer = new MyGLRenderer(context);
         setRenderer(mRenderer);
+        getHolder().setFormat(PixelFormat.TRANSPARENT);
+        setZOrderOnTop(true);
 //        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
     }
 

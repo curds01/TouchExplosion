@@ -5,11 +5,20 @@
     android:background="#0099cc"
     tools:context="com.curtis.family.touchexplosion.MainActivity">
 
+    <ImageView
+        android:id="@+id/bg_img"
+        android:layout_gravity="left"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/sky_field"
+        android:scaleType="fitXY" />
+
     <!-- The primary full-screen view. This can be replaced with whatever view
          is needed to present your content, e.g. VideoView, SurfaceView,
          TextureView, etc. -->
     <com.curtis.family.touchexplosion.MyGLSurfaceView
         android:id="@+id/fullscreen_content"
+        android:layout_gravity="right"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
@@ -17,7 +26,10 @@
         android:text="@string/dummy_content"
         android:textColor="#33b5e5"
         android:textSize="50sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        />
+
+
 
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->
