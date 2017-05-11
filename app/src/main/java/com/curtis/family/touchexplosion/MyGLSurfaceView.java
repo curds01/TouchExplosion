@@ -9,7 +9,7 @@ import android.view.MotionEvent;
 /**
  * The main GL view in which all interactions are handled.
  */
-public class MyGLSurfaceView extends GLSurfaceView {
+public class MyGLSurfaceView extends GLSurfaceView implements ParticleSystem.ActivityListener {
     private MyGLRenderer mRenderer;
 
     public MyGLSurfaceView(Context context) {
@@ -25,11 +25,11 @@ public class MyGLSurfaceView extends GLSurfaceView {
     private void init(Context context) {
         setEGLConfigChooser(8, 8, 8, 8, 16, 0);
         setEGLContextClientVersion(2);
-        mRenderer = new MyGLRenderer(context);
+        mRenderer = new MyGLRenderer(this, context);
         setRenderer(mRenderer);
         getHolder().setFormat(PixelFormat.TRANSPARENT);
         setZOrderOnTop(true);
-//        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
     }
 
     @Override
@@ -39,5 +39,15 @@ public class MyGLSurfaceView extends GLSurfaceView {
             requestRender();
         }
         return handled;
+    }
+
+    @Override
+    public void startActivity() {
+        setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+    }
+
+    @Override
+    public void stopActivity() {
+        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
     }
 }

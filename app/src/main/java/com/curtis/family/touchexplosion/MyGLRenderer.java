@@ -31,13 +31,18 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     Frustum mFrustum;
 
     Context mContext;
-    MyGLRenderer(Context ctx) {
+
+    MyGLSurfaceView mGlView;
+
+    MyGLRenderer(MyGLSurfaceView glView, Context ctx) {
         mContext = ctx;
+        mGlView = glView;
     }
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         mParticleSystem = new SimpleParticleSystem();
+        mParticleSystem.addListener(mGlView);
         mParticleSystem.initGL(mContext);
         float bgColor[] = mParticleSystem.getBgColor();
 

@@ -28,14 +28,39 @@ package com.curtis.family.touchexplosion;
 
 import android.content.Context;
 
+import java.util.ArrayList;
+
 /**
  * Represents a particle system.
  */
 public abstract class ParticleSystem {
-    Frustum mFrustum;
+    /** Definition of listener notified when the particle system stops and starts simulating
+     particles, giving other entities a chance to respond. */
+    public  interface ActivityListener {
+        /** Called when the particle system starts simulating particles -- from previously having
+         no active particles. */
+        void startActivity();
+        /** Called when the particle system no longer has active particles. */
+        void stopActivity();
+    }
+    protected Frustum mFrustum;
+    private ArrayList<ActivityListener> mListeners;
 
     /** Constructor */
-    public ParticleSystem() { mFrustum = null; }
+    public ParticleSystem() {
+        mFrustum = null;
+        mListeners = new ArrayList<>();
+    }
+
+    /** Adds an activity listener to the system. */
+    public void addListener(ActivityListener listener) {
+        mListeners.add(listener);
+    }
+
+    /** Removes an activity listener from the system. */
+    public void removeListener(ActivityListener listener) {
+        mListeners.remove(listener);
+    }
 
     /** Initializes the OpenGL resources for this system. */
     public abstract void initGL(Context context);
@@ -47,12 +72,29 @@ public abstract class ParticleSystem {
      world frame. */
     public abstract void reportTouch(float x, float y, float z, long globalT);
 
+    /** Sets the active frustum for the system. It represents the visible volume. */
     public void setFrustum(Frustum f) { mFrustum = f; }
 
+    // TODO: Consider deprecating this.
+    /** Set the background color for the system. */
     public abstract float[] getBgColor();
 
+    /** Derived classes can call this method when they go from having no active particles to having
+     some. */
+    protected void notifyActivityStart() {
+        for (ActivityListener l : mListeners) {
+            l.startActivity();
+        }
+    }
+
+    /** Derived classes can invoke this when they no longer have active particles. */
+    protected void notifyActivityStop() {
+        for (ActivityListener l : mListeners) {
+            l.stopActivity();
+        }
+    }
+
     // TODO:
-    //  1. I need to know if they exit the view frustum such that they cannot return.
     //  2. I need to handle transparency
     //  3. I need to handle a particle that just declares it has died.
 }

@@ -112,7 +112,7 @@ public class SimpleParticleSystem extends ParticleSystem {
 
         mFlowerTex = loadTexture(context, R.raw.flower);
         mColorTex = loadTexture(context, R.raw.flower_mask);
-        
+
     }
 
     /** Loads a resource image as an OpenGL texture. */
@@ -185,6 +185,7 @@ public class SimpleParticleSystem extends ParticleSystem {
         int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
         GLES20.glUniform1f(mFarLimitHandle, 7);
 
+        int originalSize = mParticles.size();
         synchronized (mSync) {
             int count = mParticles.size();
             for (int i = 0; i < count; ++i) {
@@ -197,6 +198,7 @@ public class SimpleParticleSystem extends ParticleSystem {
                 }
             }
         }
+        if (originalSize > 0 && mParticles.size() == 0) notifyActivityStop();
     }
 
     /** Draws the particle given -- indicates true if it is still alive, false if not. */
@@ -229,6 +231,7 @@ public class SimpleParticleSystem extends ParticleSystem {
     @Override
     public void reportTouch(float x, float y, float z, long globalT) {
         if (mLastSpawn < 0 || mLastSpawn + mSpawnPeriod < globalT ) {
+            if (mParticles.size() == 0) notifyActivityStart();
             mPose.set(x, y, z);
             float maxSpeed = 0.0075f;
             synchronized (mSync) {
