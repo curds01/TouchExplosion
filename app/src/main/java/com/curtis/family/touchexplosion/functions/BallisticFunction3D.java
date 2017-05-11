@@ -17,7 +17,7 @@ public class BallisticFunction3D extends Function3D {
     /** The value of the function's first derivative at tim origin: f'(t0). */
     private Vector3 x_dot0;
 
-    /** The gravity constant. Gravity contstant 4.9 m/s^2 converted to 4.9 m/ms^2. */
+    /** The gravity constant. Gravity constant 4.9 m/s^2 converted to 4.9 m/ms^2. */
     private static Vector3 half_gravity = new Vector3(0, -4.9e-6f, 0);
 
     /** Constructor.
