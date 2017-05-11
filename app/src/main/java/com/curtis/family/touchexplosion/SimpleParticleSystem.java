@@ -1,15 +1,9 @@
 package com.curtis.family.touchexplosion;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
-import android.opengl.GLUtils;
 import android.opengl.Matrix;
-import android.util.Log;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Random;
@@ -115,45 +109,8 @@ public class SimpleParticleSystem extends ParticleSystem {
 
     }
 
-    /** Loads a resource image as an OpenGL texture. */
-    private int loadTexture(Context context, int resource) {
-        // Initialize texture
-        InputStream is = context.getResources().openRawResource( resource );
-        Bitmap bitmap;
-        try {
-            bitmap = BitmapFactory.decodeStream(is);
-        } finally {
-            try {
-                is.close();
-            } catch(IOException e) {
-                Log.e("GLTextures", e.getMessage());
-                // Ignore.
-            }
-        }
-        String TAG = "SimpleParticleSystem";
-
-        int[] tmp_tex = new int[ 1 ];
-        GLES20.glGenTextures( 1, tmp_tex, 0 );
-        Utils.checkGlError( TAG, "glGenTextures" );
-        int texId = tmp_tex[0];
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texId);
-        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        //TODO: control whether I want to wrap or clamp the image
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT);
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
-        Utils.checkGlError( TAG, "ERROR CHECK - 2" );
-        bitmap.recycle();
-        return texId;
-    }
-
     @Override
     public void drawGL(long globalT, float[] mMVPMatrix) {
-//        Quad.preDraw(mGlProgram);
-//        GLES20.glUniform4fv(mColorHandle, 1, color, 0);
-//        Quad.draw();
-
         GLES20.glEnable( GLES20.GL_BLEND );
         GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
 
