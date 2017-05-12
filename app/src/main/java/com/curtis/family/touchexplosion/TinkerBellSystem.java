@@ -20,6 +20,7 @@ import java.util.Random;
 interface Particle {
     void getPosition(long globalT, Vector3 pos);
     float getOrient(long globalT);
+    float getScale();
     float[] getColor();
     boolean isAlive(long globalT);
 }
@@ -64,6 +65,8 @@ class SparkParticle implements Particle {
         return 0;
     }
 
+    public float getScale() { return 0.05f; }
+
     @Override
     public float[] getColor() {
         return mColor;
@@ -77,12 +80,15 @@ class SparkParticle implements Particle {
 
 /** The main tinkerbell particle. */
 class TinkerBellParticle implements Particle {
+    static final String TAG = TinkerBellParticle.class.getSimpleName();
     /** The scalar function that provides a bobbing displacement in the y-direction. */
     private Function1D mBobbing;
     /** The vector function that provides the position of the particle. */
     private Function3D mPosition;
     /** The scalar function specifying the orientation of the particle. */
     private Function1D mOrient;
+    /** The scale of the sprite from radius 1 to scale radius. */
+    private float mRadius;
     /** The particle color. */
     private float mColor[] = {1.0f, 1.0f, 0.1f, 1.0f};
     /** The time stamp of the last emitted spark. */
@@ -104,6 +110,7 @@ class TinkerBellParticle implements Particle {
         mOrient = new ConstFunction1D(0);
         mLastEmit = 0;
         mEmitPeriod = emitPeriod;
+        mRadius = 0.25f;
     }
 
     /** Evaluate the position of the agent at the given time, setting the position into the given
@@ -117,6 +124,8 @@ class TinkerBellParticle implements Particle {
     /** Evaluates the orientation of the agent at the given time. */
     public float getOrient(long globalT) { return mOrient.eval(globalT); }
 
+    public float getScale() { return mRadius; }
+
     /** Returns the sprite color. */
     public float[] getColor() { return mColor; }
 
@@ -129,17 +138,20 @@ class TinkerBellParticle implements Particle {
             // TODO: Emit multiple particles based on the time that has passed and *advance* them.
             //  This would happen automatically if I set their t0 value to the "correct" one
             //  retroactively.
+            Vector3 pos = new Vector3();
+            mPosition.eval(globalT, pos);
             mLastEmit = globalT;
             float x, y, z;
             synchronized(sRandom) {
-                x = sRandom.nextFloat();
-                y = sRandom.nextFloat();
-                z = sRandom.nextFloat();
+                x = (sRandom.nextFloat() - 0.5f) * mRadius + pos.x;
+                y = (sRandom.nextFloat() - 0.5f) * mRadius + pos.y;
+                z = (sRandom.nextFloat() - 0.5f) * mRadius + pos.z;
             }
             // TODO: Come up with a more interesting positioning
             // TODO: Initial position should be an offset from the tinker bell particle.
             // TODO: Come up with some random lifespan.
-            return new SparkParticle(x, y, z, 2000, globalT);
+            long life = 1500 + (long)(sRandom.nextFloat() * 1000);
+            return new SparkParticle(x, y, z, life, globalT);
         }
         return null;
     }
@@ -150,6 +162,9 @@ class TinkerBellParticle implements Particle {
  * perpetually emits fading particles from itself.
  */
 public class TinkerBellSystem extends ParticleSystem {
+
+    static final String TAG = TinkerBellSystem.class.getSimpleName();
+
     // Consts --------------------------------------------------------------------------------
 
     private final String vertexShaderCode =
@@ -194,7 +209,7 @@ public class TinkerBellSystem extends ParticleSystem {
     // Methods ---------------------------------------------------------------------------------
     public TinkerBellSystem(long globalT) {
         super();
-        mTinkerBell = new TinkerBellParticle(globalT, 100);
+        mTinkerBell = new TinkerBellParticle(globalT, 10);
         mSparks = new ArrayList<>();
         mScratch = new Vector3();
         mSync = new Object();
@@ -265,7 +280,7 @@ public class TinkerBellSystem extends ParticleSystem {
         int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
         GLES20.glUniform1f(mFarLimitHandle, 7);
 
-        drawParticle(mTinkerBell, globalT, mMVPMatrix, 0.25f);
+        drawParticle(mTinkerBell, globalT, mMVPMatrix);
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSparkTex);
 
@@ -275,7 +290,7 @@ public class TinkerBellSystem extends ParticleSystem {
             int count = mSparks.size();
             for (int i = 0; i < count; ++i) {
                 SparkParticle particle = mSparks.get(i);
-                if (!drawParticle(particle, globalT, mMVPMatrix, 0.05f) ) {
+                if (!drawParticle(particle, globalT, mMVPMatrix) ) {
                     SparkParticle end = mSparks.remove(count - 1);
                     --count;
                     if ( count > 0 && i != count ) mSparks.set(i, end);
@@ -286,7 +301,7 @@ public class TinkerBellSystem extends ParticleSystem {
     }
 
     /** Draws the particle given -- indicates true if it is still alive, false if not. */
-    public boolean drawParticle(Particle particle, long globalT, float[] mvpMatrix, float scale) {
+    public boolean drawParticle(Particle particle, long globalT, float[] mvpMatrix) {
         // Elapsed is a monotonically increasing time.
         if (!particle.isAlive(globalT)) return false;
         float theta = particle.getOrient(globalT);
@@ -296,6 +311,7 @@ public class TinkerBellSystem extends ParticleSystem {
         Matrix.setIdentityM( mMat, 0 );
         Matrix.translateM( mMat, 0, mScratch.x, mScratch.y, mScratch.z );
         Matrix.rotateM(mMat, 0, theta, 0, 0, 1);
+        float scale = particle.getScale();
         Matrix.scaleM(mMat, 0, scale, scale, scale);
         Matrix.multiplyMM( mMat, 0, mvpMatrix, 0, mMat, 0 );
 
