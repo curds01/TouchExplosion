@@ -7,9 +7,7 @@ import android.util.Log;
 
 import com.curtis.family.touchexplosion.functions.BallisticFunction1D;
 import com.curtis.family.touchexplosion.functions.ConstFunction1D;
-import com.curtis.family.touchexplosion.functions.ConstFunction3D;
 import com.curtis.family.touchexplosion.functions.Function1D;
-import com.curtis.family.touchexplosion.functions.Function3D;
 import com.curtis.family.touchexplosion.functions.HermiteFunction3D;
 import com.curtis.family.touchexplosion.functions.LinearFunction1D;
 import com.curtis.family.touchexplosion.functions.SineFunction;
@@ -108,6 +106,8 @@ class TinkerBellParticle implements Particle {
     public TinkerBellParticle(long globalT, long emitPeriod) {
         // Frequency: 3Hz ==> 3/1000 cycles / ms.
         mBobbing = new SineFunction(2.0f / 1000.0f, 0.0625f, globalT);
+        //TODO: The original position should be at the proper depth (vis a vis the chasing
+        // depth.
         mPosition = new HermiteFunction3D(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, globalT, 1000);
         mOrient = new ConstFunction1D(0);
         mLastEmit = 0;
@@ -116,14 +116,13 @@ class TinkerBellParticle implements Particle {
     }
 
     /** Causes tinkerbell to fly to the given position. */
-    public void flyTo(float x, float y, float z, long globalT) {
+    public void flyTo(Vector3 tgtPos, long globalT) {
         Vector3 currPos = new Vector3();
         Vector3 currVel = new Vector3();
-        Vector3 tgtPos = new Vector3(x, y, z);
         mPosition.eval(globalT, currPos);
         mPosition.deriv(globalT, currVel);
         float dist = currPos.distance(tgtPos);
-        long speed_inv = 100; // 200 ms/m.
+        long speed_inv = 150; // 200 ms/m.
         long duration = (long)(dist * speed_inv);
         mPosition.set(currPos, currVel, tgtPos, Vector3.ZERO, globalT, duration);
     }
@@ -320,11 +319,13 @@ public class TinkerBellSystem extends ParticleSystem {
         // Elapsed is a monotonically increasing time.
         if (!particle.isAlive(globalT)) return false;
         float theta = particle.getOrient(globalT);
-        particle.getPosition(globalT, mScratch);
-        if (mFrustum.farthestOut(mScratch, 1.0f) > 1.0f) return false;
+        synchronized (mScratch) {
+            particle.getPosition(globalT, mScratch);
+            if (mFrustum.farthestOut(mScratch, 1.0f) > 1.0f) return false;
 
-        Matrix.setIdentityM( mMat, 0 );
-        Matrix.translateM( mMat, 0, mScratch.x, mScratch.y, mScratch.z );
+            Matrix.setIdentityM(mMat, 0);
+            Matrix.translateM(mMat, 0, mScratch.x, mScratch.y, mScratch.z);
+        }
         Matrix.rotateM(mMat, 0, theta, 0, 0, 1);
         float scale = particle.getScale();
         Matrix.scaleM(mMat, 0, scale, scale, scale);
@@ -343,8 +344,11 @@ public class TinkerBellSystem extends ParticleSystem {
     }
 
     @Override
-    public void reportTouch(float x, float y, float z, long globalT) {
-        mTinkerBell.flyTo(x, y , z, globalT);
+    public void reportTouch(float x, float y, Frustum frustum, long globalT) {
+        synchronized (mScratch) {
+            mFrustum.pointInFrustum(x, y, 0.2f, mScratch);
+            mTinkerBell.flyTo(mScratch, globalT);
+        }
     }
 
     @Override

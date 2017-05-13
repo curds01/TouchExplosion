@@ -122,14 +122,15 @@ public class Frustum {
         return farthest;
     }
 
-    /** Defines a point inside the frustum with a random distance to the eye, but passing through
-     the line that passes through the canonical point (cX, cY) (where cX, cY \in [-1, +1]. The
-     point values are set in the provided vector. */
-    public void pointInFrustum(float cX, float cY, Vector3 p) {
-        float rand = random.nextFloat();
-        // This places the depth in the range of 20-80% into the frustum.
-        float depth = 0.2f + 0.6f * rand;
-
+    /** Defines a point inside the frustum with the given position between near and far planes (0
+     is at the near plane, 1 is at the far plane). The point is defined such that the line
+     connecting the eye point to the line pass through the canonical coordinates cX, cY).
+     * @param cX        Canonical x-coordinate.
+     * @param cY        Canonical y-coordinate.
+     * @param depth     Interpolated depth from near to far plane (in the range [0, 1]).
+     * @param p         The value to write the position into.
+     */
+    public void pointInFrustum(float cX, float cY, float depth, Vector3 p) {
         float dist = mNear + ((depth - 1.0f) * mNear + depth * mFar);
         float s = dist / mNear;
         float h = s;
@@ -137,5 +138,15 @@ public class Frustum {
         float height = mTop - mBottom;
         float w = s * width / height;
         p.set( cX * w, cY * h, mEye.z - dist);
+    }
+
+    /** Defines a point inside the frustum with a random distance to the eye, but passing through
+     the line that passes through the canonical point (cX, cY) (where cX, cY \in [-1, +1]. The
+     point values are set in the provided vector. */
+    public void pointInFrustum(float cX, float cY, Vector3 p) {
+        float rand = random.nextFloat();
+        // This places the depth in the range of 20-80% into the frustum.
+        float depth = 0.2f + 0.6f * rand;
+        pointInFrustum(cX, cY, depth, p);
     }
 }

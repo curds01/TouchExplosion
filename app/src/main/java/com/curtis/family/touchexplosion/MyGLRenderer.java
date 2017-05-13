@@ -109,9 +109,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
             float x = 2 * (e.getX() / (float) _wWidth - 0.5f);
             float y = 2 * ((_wHeight - e.getY()) / (float) _wHeight - 0.5f);
 
-            Vector3 pos = new Vector3();
-            mFrustum.pointInFrustum(x, y, pos);
-            mParticleSystem.reportTouch(pos.x, pos.y, pos.z, getGlobalT());
+            mParticleSystem.reportTouch(x, y, mFrustum, getGlobalT());
             return true;
         }
         return false;

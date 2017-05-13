@@ -75,9 +75,10 @@ public abstract class ParticleSystem {
     /** Draws the particles to the open gl context at the given time stamp. */
     public abstract void drawGL(long globalT, float[] mMVPMatrix);
 
-    /** Reports that there has been a touch and that the touch has the given coordinates in the
-     world frame. */
-    public abstract void reportTouch(float x, float y, float z, long globalT);
+    /** Reports that there has been a touch on the screen. Provides the (x, y) coordinates of the
+     touch in *canonical* coordinates (i.e., both lie in the range [-1, 1]. The particle system
+     can select a point in the world frame from the frustum. */
+    public abstract void reportTouch(float x, float y, Frustum frustum, long globalT);
 
     /** Sets the active frustum for the system. It represents the visible volume. */
     public void setFrustum(Frustum f) { mFrustum = f; }

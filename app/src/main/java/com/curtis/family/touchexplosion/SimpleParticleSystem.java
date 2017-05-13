@@ -186,10 +186,11 @@ public class SimpleParticleSystem extends ParticleSystem {
     }
 
     @Override
-    public void reportTouch(float x, float y, float z, long globalT) {
+    public void reportTouch(float x, float y, Frustum frustum, long globalT) {
+
         if (mLastSpawn < 0 || mLastSpawn + mSpawnPeriod < globalT ) {
             if (mParticles.size() == 0) notifyActivityStart();
-            mPose.set(x, y, z);
+            mFrustum.pointInFrustum(x, y, mPose);
             float maxSpeed = 0.0075f;
             synchronized (mSync) {
                 for (int i = 0; i < mSpawnCount; ++i) {
