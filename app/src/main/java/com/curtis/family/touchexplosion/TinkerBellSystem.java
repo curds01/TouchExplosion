@@ -3,7 +3,6 @@ package com.curtis.family.touchexplosion;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
 import com.curtis.family.touchexplosion.functions.BallisticFunction1D;
 import com.curtis.family.touchexplosion.functions.ConstFunction1D;
@@ -35,8 +34,12 @@ class SparkParticle implements Particle {
     private float mZ;
     /** The age function -- it ages from 0 to 1. */
     private Function1D mAgeFunction;
+    /** Determines the spin of the particle. */
+    private Function1D mSpinFunction;
     /** The particle color. */
     private float mColor[] = {1.0f, 1.0f, 0.1f, 1.0f};
+    /** Random number generator */
+    private Random sRandom = new Random();
 
 
     /** Construtor.
@@ -52,6 +55,8 @@ class SparkParticle implements Particle {
         mY.setGravity(-1e-6f);
         mZ = z;
         mAgeFunction = new LinearFunction1D(0, 1.0f / (float)duration, t0);
+        // It spins twice a second -> 4pi rad/1000 ms --> pi rad / 250 ms.
+        mSpinFunction = new LinearFunction1D((float)(sRandom.nextFloat() * Math.PI * 2.0f / 5.0f), (float)Math.PI / 1000.0f, t0);
     }
 
     @Override
@@ -61,10 +66,10 @@ class SparkParticle implements Particle {
 
     @Override
     public float getOrient(long globalT) {
-        return 0;
+        return mSpinFunction.eval(globalT);
     }
 
-    public float getScale() { return 0.05f; }
+    public float getScale() { return 0.1f; }
 
     @Override
     public float[] getColor() {
@@ -206,19 +211,57 @@ public class TinkerBellSystem extends ParticleSystem {
                     "  gl_FragColor.a = min(alpha, gl_FragColor.a);" +
                     "}";
 
+    private final String sparkVertexCode =
+            "uniform mat4 uMVPMatrix;" +
+                    "uniform float uFarLimit;" +
+                    "uniform vec2 uTexOrient;" +
+                    "attribute vec4 aPosition;" +
+                    "attribute vec2 aTextureCoord;" +
+                    "varying vec4 vTextureCoord;" +
+                    "varying float alpha;" +
+                    "void main() {" +
+                    "  gl_Position = uMVPMatrix * aPosition;" +
+                    "  float dist = 0.125f + 1.0f - (gl_Position.z / uFarLimit) * 0.825f;" +
+                    "  alpha = sqrt(dist);" +
+                    "  vTextureCoord.xy = aTextureCoord;" +
+                    "  vTextureCoord.wz = uTexOrient;" +
+                    "}";
+
+    private final String sparkFragmentCode =
+            "precision mediump float;" +
+                    "varying vec4 vTextureCoord;" +
+                    "uniform sampler2D uTexture0;" +
+                    "varying float alpha;" +
+                    "uniform vec4 uColor;" +
+                    "void main() {" +
+                    "  vec2 uv = vTextureCoord.xy;" +
+                    "  gl_FragColor = texture2D(uTexture0, uv) * 0.5f;" +
+                    "  vec2 x = vec2(vTextureCoord.z, vTextureCoord.w);" +
+                    "  vec2 y = vec2(-vTextureCoord.w, vTextureCoord.z);" +
+                    "  vec2 localUV = uv - 0.5f;" +
+                    "  vec2 uv2 = vec2(dot(localUV, x),dot(localUV, y)) + 0.5f;" +
+                    "  float overflow = uv2.x > 1.f ? 0.f : " +
+                    "                   uv2.x < 0.f ? 0.f : " +
+                    "                   uv2.y > 1.f ? 0.f : " +
+                    "                   uv2.y < 0.f ? 0.f : 1.f;" +
+                    "  gl_FragColor += texture2D(uTexture0, uv2) * 0.5f;" +
+                    "  gl_FragColor *= uColor;" +
+                    "  gl_FragColor.a = min( min(alpha, gl_FragColor.a), overflow);" +
+                    "}";
+
+
     // Members --------------------------------------------------------------------------------
 
     private TinkerBellParticle mTinkerBell;
     private ArrayList<SparkParticle> mSparks;
     private IntBuffer mData;
-    private int mProgram;
+    private int mFairyProgram;
+    private int mSparkProgram;
     private int mTinkerTex;
     private int mSparkTex;
     private Object mSync;
     private Vector3 mScratch;
     private float mMat[];
-
-
 
     // Methods ---------------------------------------------------------------------------------
     public TinkerBellSystem(long globalT) {
@@ -244,25 +287,24 @@ public class TinkerBellSystem extends ParticleSystem {
         };
         mData = Utils.buildBuffer(interleaved);
 
-        int vertexShader = MyGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER,
-                vertexShaderCode);
-        int fragmentShader = MyGLRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER,
-                fragmentShaderCode);
-
-        // create empty OpenGL ES Program
-        mProgram = GLES20.glCreateProgram();
-
-        // add the vertex shader to program
-        GLES20.glAttachShader(mProgram, vertexShader);
-
-        // add the fragment shader to program
-        GLES20.glAttachShader(mProgram, fragmentShader);
-
-        // creates OpenGL ES program executables
-        GLES20.glLinkProgram(mProgram);
+        mFairyProgram = loadProgram(vertexShaderCode, fragmentShaderCode);
+        mSparkProgram = loadProgram(sparkVertexCode, sparkFragmentCode);
 
         mTinkerTex = loadTexture(context, R.raw.yin_yang);
-        mSparkTex = loadTexture(context, R.raw.target);
+        mSparkTex = loadTexture(context, R.raw.star);
+    }
+
+    protected int loadProgram(String vertexCode, String fragmentCode) {
+        int vertexShader = MyGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER,
+                vertexCode);
+        int fragmentShader = MyGLRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER,
+                fragmentCode);
+        int program = GLES20.glCreateProgram();
+        GLES20.glAttachShader(program, vertexShader);
+        GLES20.glAttachShader(program, fragmentShader);
+        GLES20.glLinkProgram(program);
+
+        return program;
     }
 
     @Override
@@ -271,32 +313,50 @@ public class TinkerBellSystem extends ParticleSystem {
         GLES20.glEnable( GLES20.GL_BLEND );
         GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
 
-        // Add program to OpenGL ES environment
-        GLES20.glUseProgram(mProgram);
-
-        int texLoc = GLES20.glGetUniformLocation(mProgram, "uTexture0");
-        GLES20.glUniform1i(texLoc, 0);
-
         GLES20.glActiveTexture( GLES20.GL_TEXTURE0 );
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTinkerTex);
 
+        // Add program to OpenGL ES environment
+        GLES20.glUseProgram(mFairyProgram);
+        int texLoc = GLES20.glGetUniformLocation(mFairyProgram, "uTexture0");
+        GLES20.glUniform1i(texLoc, 0);
+
         int stride = 20; // 4 bytes-per int * 5 ints.
         mData.position(0);
-        int handle =  GLES20.glGetAttribLocation( mProgram, "aPosition" );
+        int handle =  GLES20.glGetAttribLocation(mFairyProgram, "aPosition" );
         GLES20.glVertexAttribPointer(handle, 3, GLES20.GL_FIXED, false, stride, mData);
         GLES20.glEnableVertexAttribArray( handle );
 
-        mData.position(3); handle =  GLES20.glGetAttribLocation( mProgram, "aTextureCoord" );
+        mData.position(3); handle =  GLES20.glGetAttribLocation(mFairyProgram, "aTextureCoord" );
         GLES20.glVertexAttribPointer(handle, 2, GLES20.GL_FIXED, false, stride, mData);
         GLES20.glEnableVertexAttribArray( handle );
         GLES20.glEnableVertexAttribArray( handle );
 
-        int mFarLimitHandle = GLES20.glGetUniformLocation(mProgram, "uFarLimit");
-        GLES20.glUniform1f(mFarLimitHandle, 7);
+        handle = GLES20.glGetUniformLocation(mFairyProgram, "uFarLimit");
+        GLES20.glUniform1f(handle, 7);
 
-        drawParticle(mTinkerBell, globalT, mMVPMatrix);
+        drawParticle(mTinkerBell, globalT, mMVPMatrix, mFairyProgram);
 
+        // Sparks
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSparkTex);
+
+        // Add program to OpenGL ES environment
+        GLES20.glUseProgram(mSparkProgram);
+        texLoc = GLES20.glGetUniformLocation(mSparkProgram, "uTexture0");
+        GLES20.glUniform1i(texLoc, 0);
+
+        mData.position(0);
+        handle =  GLES20.glGetAttribLocation(mSparkProgram, "aPosition" );
+        GLES20.glVertexAttribPointer(handle, 3, GLES20.GL_FIXED, false, stride, mData);
+        GLES20.glEnableVertexAttribArray( handle );
+
+        mData.position(3); handle =  GLES20.glGetAttribLocation(mSparkProgram, "aTextureCoord" );
+        GLES20.glVertexAttribPointer(handle, 2, GLES20.GL_FIXED, false, stride, mData);
+        GLES20.glEnableVertexAttribArray( handle );
+        GLES20.glEnableVertexAttribArray( handle );
+
+        handle = GLES20.glGetUniformLocation(mSparkProgram, "uFarLimit");
+        GLES20.glUniform1f(handle, 7);
 
         synchronized (mSync) {
             SparkParticle newSpark = mTinkerBell.emit(globalT);
@@ -304,7 +364,7 @@ public class TinkerBellSystem extends ParticleSystem {
             int count = mSparks.size();
             for (int i = 0; i < count; ++i) {
                 SparkParticle particle = mSparks.get(i);
-                if (!drawParticle(particle, globalT, mMVPMatrix) ) {
+                if (!drawSpark(particle, globalT, mMVPMatrix) ) {
                     SparkParticle end = mSparks.remove(count - 1);
                     --count;
                     if ( count > 0 && i != count ) mSparks.set(i, end);
@@ -314,8 +374,17 @@ public class TinkerBellSystem extends ParticleSystem {
         }
     }
 
+    public boolean drawSpark(SparkParticle particle, long globalT, float[] mvpMatrix) {
+        int handle = GLES20.glGetUniformLocation(mSparkProgram, "uTexOrient");
+        float angle = particle.getOrient(globalT);
+        float[] orient = {(float)Math.cos(angle), (float)Math.sin(angle) };
+        GLES20.glUniform2fv(handle, 0, orient, 0);
+        drawParticle(particle, globalT, mvpMatrix, mSparkProgram);
+        return true;
+    }
+
     /** Draws the particle given -- indicates true if it is still alive, false if not. */
-    public boolean drawParticle(Particle particle, long globalT, float[] mvpMatrix) {
+    public boolean drawParticle(Particle particle, long globalT, float[] mvpMatrix, int program) {
         // Elapsed is a monotonically increasing time.
         if (!particle.isAlive(globalT)) return false;
         float theta = particle.getOrient(globalT);
@@ -331,11 +400,11 @@ public class TinkerBellSystem extends ParticleSystem {
         Matrix.scaleM(mMat, 0, scale, scale, scale);
         Matrix.multiplyMM( mMat, 0, mvpMatrix, 0, mMat, 0 );
 
-        int mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
+        int mMVPMatrixHandle = GLES20.glGetUniformLocation(program, "uMVPMatrix");
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMat, 0);
 
         // get handle to fragment shader's vColor member
-        int mColorHandle = GLES20.glGetUniformLocation(mProgram, "uColor");
+        int mColorHandle = GLES20.glGetUniformLocation(program, "uColor");
         GLES20.glUniform4fv(mColorHandle, 1, particle.getColor(), 0);
 
         // Draw the quad

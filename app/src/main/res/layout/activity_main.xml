@@ -10,7 +10,7 @@
         android:layout_gravity="left"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/sky_field"
+        android:src="@drawable/night_sky"
         android:scaleType="fitXY" />
 
     <!-- The primary full-screen view. This can be replaced with whatever view
