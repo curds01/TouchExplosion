@@ -10,6 +10,7 @@ import com.curtis.family.touchexplosion.functions.ConstFunction1D;
 import com.curtis.family.touchexplosion.functions.ConstFunction3D;
 import com.curtis.family.touchexplosion.functions.Function1D;
 import com.curtis.family.touchexplosion.functions.Function3D;
+import com.curtis.family.touchexplosion.functions.HermiteFunction3D;
 import com.curtis.family.touchexplosion.functions.LinearFunction1D;
 import com.curtis.family.touchexplosion.functions.SineFunction;
 
@@ -81,10 +82,11 @@ class SparkParticle implements Particle {
 /** The main tinkerbell particle. */
 class TinkerBellParticle implements Particle {
     static final String TAG = TinkerBellParticle.class.getSimpleName();
+
     /** The scalar function that provides a bobbing displacement in the y-direction. */
     private Function1D mBobbing;
     /** The vector function that provides the position of the particle. */
-    private Function3D mPosition;
+    private HermiteFunction3D mPosition;
     /** The scalar function specifying the orientation of the particle. */
     private Function1D mOrient;
     /** The scale of the sprite from radius 1 to scale radius. */
@@ -106,11 +108,24 @@ class TinkerBellParticle implements Particle {
     public TinkerBellParticle(long globalT, long emitPeriod) {
         // Frequency: 3Hz ==> 3/1000 cycles / ms.
         mBobbing = new SineFunction(2.0f / 1000.0f, 0.0625f, globalT);
-        mPosition = new ConstFunction3D(new Vector3());
+        mPosition = new HermiteFunction3D(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, globalT, 1000);
         mOrient = new ConstFunction1D(0);
         mLastEmit = 0;
         mEmitPeriod = emitPeriod;
         mRadius = 0.25f;
+    }
+
+    /** Causes tinkerbell to fly to the given position. */
+    public void flyTo(float x, float y, float z, long globalT) {
+        Vector3 currPos = new Vector3();
+        Vector3 currVel = new Vector3();
+        Vector3 tgtPos = new Vector3(x, y, z);
+        mPosition.eval(globalT, currPos);
+        mPosition.deriv(globalT, currVel);
+        float dist = currPos.distance(tgtPos);
+        long speed_inv = 100; // 200 ms/m.
+        long duration = (long)(dist * speed_inv);
+        mPosition.set(currPos, currVel, tgtPos, Vector3.ZERO, globalT, duration);
     }
 
     /** Evaluate the position of the agent at the given time, setting the position into the given
@@ -329,7 +344,7 @@ public class TinkerBellSystem extends ParticleSystem {
 
     @Override
     public void reportTouch(float x, float y, float z, long globalT) {
-
+        mTinkerBell.flyTo(x, y , z, globalT);
     }
 
     @Override

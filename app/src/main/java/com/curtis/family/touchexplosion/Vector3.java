@@ -63,11 +63,23 @@ public class Vector3 {
                 x * b.y - y * b.x);
     }
 
+    public float distance(Vector3 v) {
+        float dx = x - v.x;
+        float dy = y - v.y;
+        float dz = z - v.z;
+        return (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
     public String toString() {
         return "(" + x + ", " + y + ", " + z + ")";
     }
 
     /** Mathematical operators */
+
+    public void add_ip(Vector3 v) { x += v.x; y += v.y; z += v.z; }
+    public void sub_ip(Vector3 v) { x -= v.x; y -= v.y; z -= v.z; }
+    public void mul_ip(float s) { x *= s; y *= s; z *= s; }
+    public void negate_ip() { x = -x; y = -y; z = -z; }
 
     public Vector3 add(Vector3 v) {
         return new Vector3( x + v.x, y + v.y, z + v.z);

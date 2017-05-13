@@ -12,4 +12,7 @@ abstract class FunctionBase {
 
     /** Constructor -- sets the origin of the domain to the given value (in milliseconds). */
     public FunctionBase(long t0) { this.t0 = t0; }
+
+    /** Resets the origin time value. */
+    public void resetTime(long t0) { this.t0 = t0; }
 }
